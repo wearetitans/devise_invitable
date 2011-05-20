@@ -24,8 +24,23 @@ module Devise
       attr_accessor :skip_invitation
 
       included do
+        before_validation :generate_password, :on => :create
+
         include ::DeviseInvitable::Inviter
         belongs_to :invited_by, :polymorphic => true
+
+      end
+
+      # To prevent the monkeying with the way that Devise validates records, insert a callback into
+      # the chain that will autogenerate a password for the user record.  Since its reset anyways, it
+      # doesn't matter what it is
+      def generate_password
+        if self.password.nil?
+          temp_password = SecureRandom.hex(8)
+
+          self.password = temp_password
+          self.password_confirmation = temp_password
+        end
       end
 
       # Accept an invitation by clearing invitation token and confirming it if model
@@ -56,6 +71,16 @@ module Devise
         end
       end
 
+      # Reset invitation token and send invitation again
+      def invite
+        @skip_password = true
+        self.skip_confirmation! if self.new_record? && self.respond_to?(:skip_confirmation!)
+        generate_invitation_token if self.invitation_token.nil?
+        self.invitation_sent_at = Time.now.utc
+        self.invited_by.decrement_invitation_limit! if self.invited_by
+        !!deliver_invitation unless @skip_invitation
+      end
+
       # Verify whether a invitation is active or not. If the user has been
       # invited, we need to calculate if the invitation time has not expired
       # for this user, in other words, if the invitation is still valid.
@@ -63,17 +88,7 @@ module Devise
         invited? && invitation_period_valid?
       end
 
-      # Only verify password when is not invited
-      def valid_password?(password)
-        super unless invited?
-      end
-
       protected
-        # Overriding the method in Devise's :validatable module so password is not required on inviting
-        def password_required?
-          !@skip_password && super
-        end
-
         # Deliver the invitation email
         def deliver_invitation
           ::Devise.mailer.invitation_instructions(self).deliver
