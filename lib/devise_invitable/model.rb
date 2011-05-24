@@ -91,7 +91,7 @@ module Devise
       protected
         # Deliver the invitation email
         def deliver_invitation(template)
-          ::Devise.mailer.send(template, self).deliver
+          ::Devise.mailer.invitation(self, template).deliver
         end
 
         # Clear invitation token when reset password token is cleared too
