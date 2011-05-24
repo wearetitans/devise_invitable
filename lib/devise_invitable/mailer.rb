@@ -2,9 +2,8 @@ module DeviseInvitable
   module Mailer
     
     # Deliver an invitation email
-    def invitation(record, template)
+    def invitation(record, action)
       initialize_from_record(record)
-      puts "I just got called"
       mail {
         :subject       => translate(devise_mapping, action),
         :from          => mailer_sender(devise_mapping),
