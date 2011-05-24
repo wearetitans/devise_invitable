@@ -12,7 +12,6 @@ module DeviseInvitable
   def setup_mail(record, action)
     initialize_from_record(record)
     mail headers_for(action)
-    @template = action
   end
 
   def initialize_from_record(record)
@@ -29,7 +28,8 @@ module DeviseInvitable
       :subject       => translate(devise_mapping, action),
       :from          => mailer_sender(devise_mapping),
       :to            => resource.email,
-      :template_path => template_paths
+      :template_path => template_paths,
+      :template      => action
     }
 
     if resource.respond_to?(:headers_for)
