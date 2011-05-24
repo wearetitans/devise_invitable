@@ -58,7 +58,7 @@ module Devise
       end
 
       # Reset invitation token and send invitation again
-      def invite!
+      def invite!(template = :invitation_instructions)
         if new_record? || invited?
           @skip_password = true
           self.skip_confirmation! if self.new_record? && self.respond_to?(:skip_confirmation!)
@@ -66,19 +66,19 @@ module Devise
           self.invitation_sent_at = Time.now.utc
           if save(:validate => self.class.validate_on_invite)
             self.invited_by.decrement_invitation_limit! if self.invited_by
-            !!deliver_invitation unless @skip_invitation
+            !!deliver_invitation(template) unless @skip_invitation
           end
         end
       end
 
       # Reset invitation token and send invitation again
-      def invite
+      def invite(template = :invitation_instructions)
         @skip_password = true
         self.skip_confirmation! if self.new_record? && self.respond_to?(:skip_confirmation!)
         generate_invitation_token if self.invitation_token.nil?
         self.invitation_sent_at = Time.now.utc
         self.invited_by.decrement_invitation_limit! if self.invited_by
-        !!deliver_invitation unless @skip_invitation
+        !!deliver_invitation(template) unless @skip_invitation
       end
 
       # Verify whether a invitation is active or not. If the user has been
@@ -90,8 +90,8 @@ module Devise
 
       protected
         # Deliver the invitation email
-        def deliver_invitation
-          ::Devise.mailer.invitation_instructions(self).deliver
+        def deliver_invitation(template)
+          ::Devise.mailer.send(template, self).deliver
         end
 
         # Clear invitation token when reset password token is cleared too
